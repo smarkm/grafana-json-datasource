@@ -23,17 +23,26 @@ export class DataSource extends DataSourceApi<JsonApiQuery, JsonApiDataSourceOpt
     super(instanceSettings);
     this.api = new API(instanceSettings.url!, instanceSettings.jsonData.queryParams || '');
   }
-
+  
   async query(request: DataQueryRequest<JsonApiQuery>): Promise<DataQueryResponse> {
     const templateSrv = getTemplateSrv();
-
+    
     const replaceMacros = (str: string) => {
       return str
-        .replace(/\$__unixEpochFrom\(\)/g, request.range.from.unix().toString())
-        .replace(/\$__unixEpochTo\(\)/g, request.range.to.unix().toString());
+      .replace(/\$__unixEpochFrom\(\)/g, request.range.from.unix().toString())
+      .replace(/\$__unixEpochTo\(\)/g, request.range.to.unix().toString());
     };
-
+    
     const promises = request.targets.map(async query => {
+      const params = window.location.search.split("&")
+      for (const param of params) {
+        let kv = param.split("=")
+        var key = kv[0].replace("&","")
+        var rg = new RegExp("\\$\\{"+key+"\\}","g");
+        query.queryParams = query.queryParams.replace(rg,kv[1])
+
+      }
+      console.log(query.queryParams)
       const queryParamsTreated = replaceMacros(templateSrv.replace(query.queryParams, request.scopedVars));
       const urlPathTreated = templateSrv.replace(query.urlPath, request.scopedVars);
 
